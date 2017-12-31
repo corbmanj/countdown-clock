@@ -34,5 +34,16 @@ module.exports = {
         NODE_ENV: JSON.stringify('dev')
       }
     })
-  ]
+  ],
+  devServer: {
+      hot: true,
+      host: '0.0.0.0',
+      port: 8081,
+      allowedHosts: ['*'],
+      disableHostCheck: true,
+      historyApiFallback: {
+          index: 'index.html',
+          hot: true
+      }
+  }
 }

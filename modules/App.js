@@ -1,135 +1,117 @@
 import React, {Component} from 'react'
-import Login from './Login'
-import Schedule from './Schedule/Schedule'
-import SelectOutfits from './Select/SelectOutfits'
-import AssignItems from './Assign/AssignItems'
-import PackingList from './Packing/PackingList'
-import OutfitsList from './Print/OutfitsList'
-import NavMenu from './NavBar/NavMenu'
-import GetStarted from './GetStarted'
-import Setup from './Setup/SetupMain'
-import LoadTrips from './LoadTrips'
-import Toast from './Shared/Toast'
-import ReactCSSTransitionGroup from 'react-addons-css-transition-group'
-
-require('es6-promise').polyfill()
-require('isomorphic-fetch')
-import '../node_modules/@blueprintjs/core/dist/blueprint.css'
-
-const baseUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8080'
+import Clock from 'react-countdown-clock'
 
 export default class App extends Component {
   state = {
-    numDays: 0,
-    currentStage: 'home',
-    tote: {},
-    showToast: false
+    paused: true,
+    timeLeft: 0,
+    segments: [
+        {time: 600, color: "#0e0"},
+        {time: 240, color: "#e00"},
+        {time: 60, color: "#00e"},
+        {time: 120, color: "#e00"},
+        {time: 60, color: "#00e"},
+        {time: 120, color: "#e00"},
+        {time: 60, color: "#00e"},
+        {time: 240, color: "#e00"},
+        {time: 60, color: "#00e"},
+        {time: 240, color: "#e00"},
+        {time: 60, color: "#00e"},
+        {time: 120, color: "#e00"},
+        {time: 60, color: "#00e"},
+        {time: 120, color: "#e00"},
+        {time: 60, color: "#00e"},
+        {time: 240, color: "#e00"},
+        {time: 60, color: "#00e"},
+        {time: 240, color: "#e00"},
+        {time: 60, color: "#00e"},
+        {time: 120, color: "#e00"},
+        {time: 60, color: "#00e"},
+        {time: 120, color: "#e00"},
+        {time: 60, color: "#00e"},
+        {time: 240, color: "#e00"},
+        {time: 600, color: "#0e0"}
+    ],
+    currentSegment: 0,
+    segmentColor: "#0e0"
   }
-  updateStage = (newStage) => {
-    this.setState({ currentStage: newStage.target.value })
+  pauseClock = () => {
+    this.setState({paused: !this.state.paused})
   }
-  saveToDB = () => {
-    var myHeaders = new Headers();
-
-    myHeaders.append('Content-Type', 'application/json');
-
-    fetch(`${baseUrl}/db/tote/updateTrip/${this.state.tripId}`, {
-      method: 'POST',
-      body: JSON.stringify(this.state),
-      headers: myHeaders,
-      mode: 'cors',
-      cache: 'default'
-    })
-      .then(function(response) {
-        if (response.status >= 400) {
-          throw new Error("Bad response from server")
-        }
-      });
+  completeSegment = () => {
+      if (this.state.currentSegment === this.state.segments.length) {
+      } else {
+          this.setState((prevState) => {
+              console.log(prevState.currentSegment)
+              return {
+                  timeLeft: this.state.segments[prevState.currentSegment].time,
+                  currentSegment: prevState.currentSegment + 1,
+                  segmentColor: this.state.segments[prevState.currentSegment].color
+              }
+          })
+      }
   }
-  updateState = (stateObj) => {
-    this.setState(stateObj)
-    this.saveToDB()
+  addSegment = () => {
+      this.setState(prevState => {
+          prevState.segments.push({time: 0, color: "#000"})
+          return prevState
+      })
   }
-  updateSateNoSave = (stateObj) => {
-    this.setState(stateObj)
+  removeSegment = () => {
+      this.setState(prevState => {
+          prevState.segments.pop()
+          return prevState
+      })
   }
-  showToast = (toastProps) => {
-    this.setState({showToast: true, toastProps})
-    setTimeout(() => { this.setState({showToast: false}) }, 1500)
+  updateSegmentTime = (ev) => {
+      ev.persist()
+      this.setState(prevState => {
+          prevState.segments[ev.target.name].time = ev.target.value
+          return prevState
+      })
   }
-  renderToast = () => {
-    return (
-      <Toast
-        message={this.state.toastProps.message || "no message"}
-        type={this.state.toastProps.type || "success"}
-      />
-    )
+  updateSegmentColor = (ev) => {
+      ev.persist()
+      this.setState(prevState => {
+          prevState.segments[ev.target.name].color = ev.target.value
+          return prevState
+      })
   }
-  conditionallyRenderNavMenu () {
-    if (this.state.currentStage !== 'setup') {
-      return (
-        <NavMenu
-          updateState={this.updateState}
-          active={this.state.currentStage}
-          tote={this.state.tote}
-          home={!this.state.tote}
-          schedule={!this.state.tote}
-          select={!this.state.days}
-          assign={!this.state.tote.unnamed}
-          packing={!this.state.tote.namedItems}
-          print={!this.state.tote.namedItems}
-        />
-      )
-    }
+  renderSegments = () => {
+      const segments = this.state.segments.map((segment, index) => {
+          return (
+              <div key={index}>
+                  {index < 9 ? '0' + Number(index + 1) : index + 1}.
+                  <input type="number" name={index} style={{width: "50px"}} defaultValue={segment.time} onChange={this.updateSegmentTime}/>
+                  s, color:
+                  <input type="text" name={index} style={{width: "50px"}} defaultValue={segment.color} onChange={this.updateSegmentColor}/>
+              </div>
+          )
+      })
+      return segments
   }
-  renderStage = (stage) => {
-    switch (stage) {
-      case 'load':
-        return <LoadTrips updateState={this.updateSateNoSave} updateStage={this.updateStage} userId={this.state.userId} />
-        break
-      case 'setup':
-        return <Setup updateState={this.updateState} user={this.state.userId} />
-        break
-      case 'schedule':
-        return <Schedule updateState={this.updateState} startDate={this.state.startDate} endDate={this.state.endDate} city={this.state.city} days={this.state.days} />
-        break
-      case 'select':
-        return <SelectOutfits updateState={this.updateState} days={this.state.days} tote={this.state.tote} outfitTypes={this.state.outfitTypes} showToast={this.showToast}/>
-        break
-      case 'assign':
-        return <AssignItems updateState={this.updateState} days={this.state.days} tote={this.state.tote} />
-        break
-      case 'packing':
-        return <PackingList updateState={this.updateState} tote={this.state.tote} />
-        break
-      case 'print':
-        return <OutfitsList updateState={this.updateState} days={this.state.days} namedItems={this.state.tote.namedItems}/>
-        break
-      default:
-        return (
-          <div>
-            <h1>Welcome to Tote</h1>
-            {this.state.userId ? <GetStarted updateStage={this.updateStage} updateState={this.updateState} userId={this.state.userId}/> : <Login updateState={this.updateSateNoSave} tote={this.state.tote}/>}
-          </div>
-        )
-    }
-  }
-
   render() {
     return (
-      <div>
-        {this.conditionallyRenderNavMenu()}
-        {this.renderStage(this.state.currentStage)}
-        <ReactCSSTransitionGroup
-          transitionName="toast"
-          transitionEnter
-          transitionEnterTimeout={300}
-          transitionAppear={false}
-          transitionLeave
-          transitionLeaveTimeout={300}
-        >
-          {this.state.showToast && this.renderToast()}
-        </ReactCSSTransitionGroup>
+      <div className="flex">
+        <button onClick={this.pauseClock} id="startPause">
+            { this.state.paused ? 'Start' : 'Pause' }
+        </button>
+        <div>
+          {this.renderSegments()}
+            <div id="buttons">
+                <button onClick={this.addSegment}>add segment</button>
+                <button onClick={this.removeSegment}>remove segment</button>
+            </div>
+        </div>
+        <div>
+          <Clock seconds={this.state.timeLeft}
+             color={this.state.segmentColor}
+             alpha={0.9}
+             size={300}
+             onComplete={this.completeSegment}
+             paused={this.state.paused}
+          />
+        </div>
       </div>
     )
   }
